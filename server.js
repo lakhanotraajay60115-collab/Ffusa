@@ -5,27 +5,25 @@ const socketIo = require('socket.io');
 
 const app = express();
 const server = http.createServer(app);
-// Socket.IO ને HTTP સર્વર સાથે જોડો
 const io = socketIo(server); 
 
 // B. જરૂરી ચલ (Variables)
 let currentAlphabet = ''; 
-let players = {}; // બધા ખેલાડીઓનો ડેટા (Socket ID, Name, Score) સ્ટોર કરવા
+let players = {}; 
 let roundActive = false;
-let answers = []; // વર્તમાન રાઉન્ડના જવાબો
+let answers = []; 
+let currentLanguage = 'gu'; // Default to Gujarati
+let hostId = null; // Host ના Socket ID ને સંગ્રહ કરવા માટે
 
-// ગુજરાતી, હિન્દી અને અંગ્રેજી મૂળાક્ષરોનું મિશ્રણ (હવે મલ્ટિપલ ભાષા માટે તૈયાર)
-const alphabets = [
-    // ગુજરાતી (Gujarati)
-    "ક", "ખ", "ગ", "ચ", "ટ", "ત", "પ", "મ", "ર", "વ", "સ",
-    // હિન્દી (Hindi) - જે ગુજરાતીથી અલગ છે
-    "अ", "इ", "उ", "ए", "ओ", "श", "भ", "झ", 
-    // અંગ્રેજી (English)
-    "A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M", "N", "O", "P", "Q", "R", "S", "T", "U", "V", "W", "X", "Y", "Z"
-]; 
+// ગુજરાતી, હિન્દી અને અંગ્રેજી મૂળાક્ષરો (ભાષા પ્રમાણે)
+const languageAlphabets = {
+    gu: ["ક", "ખ", "ગ", "ચ", "ટ", "ત", "પ", "મ", "ર", "વ", "સ"], 
+    hi: ["अ", "इ", "उ", "ए", "ओ", "श", "भ", "झ", "य", "ર", "લ", "વ"], 
+    en: ["A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M", "N", "O", "P", "Q", "R", "S", "T", "U", "V", "W", "X", "Y", "Z"]
+}; 
 
 // C. સ્ટેટિક ફાઇલોને સર્વ કરો (HTML, CSS, Client JS)
-app.use(express.static('public')); // માની લો કે તમારી index.html 'public' ફોલ્ડરમાં છે
+app.use(express.static('public')); 
 
 // D. Socket.IO કનેક્શન લોજિક
 io.on('connection', (socket) => {
@@ -37,9 +35,22 @@ io.on('connection', (socket) => {
     // --- ૧. લૉગિન / નામ સેટ કરવું ---
     socket.on('registerName', (playerName) => {
         players[socket.id].name = playerName;
-        console.log(`${playerName} ગેમમાં જોડાયો.`);
+        
+        // નવું: પ્રથમ જોડાયેલા ખેલાડીને Host બનાવો
+        if (hostId === null) {
+            hostId = socket.id;
+            socket.emit('setHost', true);
+        } else if (socket.id === hostId) {
+            socket.emit('setHost', true); // Host ફરી જોડાય તો તેની સ્થિતિ અપડેટ કરો
+        } else {
+             socket.emit('setHost', false);
+        }
+        
         // બધાને ખેલાડીઓની અપડેટ કરેલી યાદી મોકલો
         io.emit('playerListUpdate', players); 
+        
+        // Host ને વર્તમાન ભાષા મોકલો
+        socket.emit('languageChanged', currentLanguage);
         
         // જો 2 કે તેથી વધુ ખેલાડીઓ હોય તો ગેમ શરૂ કરો
         if (Object.keys(players).length >= 2 && !roundActive) {
@@ -51,20 +62,42 @@ io.on('connection', (socket) => {
     socket.on('disconnect', () => {
         console.log('ખેલાડી છોડી ગયો:', socket.id);
         delete players[socket.id];
+        
+        // નવું: જો Host ડિસ્કનેક્ટ થાય, તો નવો Host સેટ કરો
+        if (socket.id === hostId) {
+            hostId = Object.keys(players).length > 0 ? Object.keys(players)[0] : null;
+            if (hostId) {
+                io.to(hostId).emit('setHost', true); // નવા Host ને જણાવો
+            }
+        }
+        
         io.emit('playerListUpdate', players);
     });
 
     // --- ૩. ખેલાડી જવાબ સબમિટ કરે ત્યારે ---
     socket.on('submitAnswer', (data) => {
         if (!roundActive) return;
-
-        // જવાબ ડેટાબેઝ/સર્વર પર સ્ટોર કરો
         answers.push({ playerId: socket.id, player: players[socket.id].name, data });
         console.log(`${players[socket.id].name} એ જવાબ સબમિટ કર્યો.`);
 
-        // જો બધા ખેલાડીઓએ જવાબ આપી દીધો હોય, તો રાઉન્ડ સમાપ્ત કરો
         if (answers.length === Object.keys(players).length) {
             endRoundAndCalculateScore();
+        }
+    });
+    
+    // --- ૪. Host દ્વારા ભાષા બદલવી (નવું Event) ---
+    socket.on('setLanguage', (langCode) => {
+        // ખાતરી કરો કે બદલનાર વ્યક્તિ Host છે અને કોડ માન્ય છે
+        if (socket.id === hostId && languageAlphabets[langCode]) {
+            currentLanguage = langCode;
+            // બધાને જણાવો કે ભાષા બદલાઈ ગઈ છે
+            io.emit('languageChanged', currentLanguage);
+            console.log(`Host એ ભાષા બદલી: ${currentLanguage}`);
+            
+            // જો રાઉન્ડ શરૂ ન હોય અને પૂરતા ખેલાડીઓ હોય, તો તરત નવો રાઉન્ડ શરૂ કરો
+            if (Object.keys(players).length >= 2 && !roundActive) {
+                startNewRound(); 
+            }
         }
     });
 });
@@ -73,12 +106,15 @@ io.on('connection', (socket) => {
 function startNewRound() {
     roundActive = true;
     answers = [];
+    
+    // વર્તમાન ભાષાના મૂળાક્ષરોમાંથી પસંદ કરો
+    const alphabets = languageAlphabets[currentLanguage];
     const randomIndex = Math.floor(Math.random() * alphabets.length);
     currentAlphabet = alphabets[randomIndex];
 
-    // બધા ખેલાડીઓને નવો અક્ષર મોકલો
-    io.emit('newRound', { alphabet: currentAlphabet, roundNumber: 1 }); // રાઉન્ડ નંબર પણ મોકલો
-    console.log(`નવો રાઉન્ડ શરૂ થયો. અક્ષર: ${currentAlphabet}`);
+    // બધા ખેલાડીઓને નવો અક્ષર અને વર્તમાન ભાષા મોકલો
+    io.emit('newRound', { alphabet: currentAlphabet, roundNumber: 1, lang: currentLanguage }); 
+    console.log(`નવો રાઉન્ડ શરૂ થયો. ભાષા: ${currentLanguage}, અક્ષર: ${currentAlphabet}`);
 
     // ટાઈમર સેટ કરો (દા.ત., 60 સેકન્ડ)
     setTimeout(endRoundAndCalculateScore, 60000); 
@@ -88,7 +124,7 @@ function endRoundAndCalculateScore() {
     if (!roundActive) return;
     roundActive = false;
     
-    const currentAlphabetToMatch = currentAlphabet.trim().toLowerCase(); // કેસ-ઇન્સેન્સિટિવ મેચિંગ માટે
+    const currentAlphabetToMatch = currentAlphabet.trim(); 
     const categories = ['boy', 'girl', 'village', 'item'];
     
     // 1. દરેક કેટેગરીમાં જવાબોની ગણતરી કરો
@@ -114,17 +150,29 @@ function endRoundAndCalculateScore() {
         categories.forEach(category => {
             const answerValue = submission.data[category].trim();
             
-            // જો જવાબ ખાલી હોય તો 0 પોઈન્ટ
             if (!answerValue) {
                 return; 
             }
 
             // પ્રથમ અક્ષરની ચકાસણી (Validation)
-            const firstChar = answerValue.charAt(0).toLowerCase();
+            const firstChar = answerValue.charAt(0).trim();
             
-            // જો જવાબ વર્તમાન અક્ષરથી શરૂ થતો ન હોય તો 0 પોઈન્ટ
-            if (firstChar !== currentAlphabetToMatch.toLowerCase()) {
-                return;
+            let isMatch = false;
+
+            if (currentLanguage === 'en') {
+                // અંગ્રેજી માટે: કેસ-ઇન્સેન્સિટિવ મેચ (A=a)
+                if (firstChar.toLowerCase() === currentAlphabetToMatch.toLowerCase()) {
+                    isMatch = true;
+                }
+            } else {
+                // ગુજરાતી/હિન્દી માટે: સીધી મેચ
+                if (firstChar === currentAlphabetToMatch) {
+                    isMatch = true;
+                }
+            }
+
+            if (!isMatch) {
+                 return;
             }
 
             // યુનિકનેસ (Uniqueness) ચકાસણી
@@ -132,13 +180,10 @@ function endRoundAndCalculateScore() {
             const count = answerCounts[category][normalizedAnswer];
 
             if (count === 1) {
-                // અનોખો જવાબ: 10 પોઈન્ટ
-                roundScore += 10;
+                roundScore += 10; // અનોખો જવાબ: 10 પોઈન્ટ
             } else if (count > 1) {
-                // મેચ થયેલો જવાબ: 5 પોઈન્ટ
-                roundScore += 5;
+                roundScore += 5; // મેચ થયેલો જવાબ: 5 પોઈન્ટ
             }
-            // જો અક્ષર મેચ ન થાય તો 0
         });
 
         // ખેલાડીના કુલ સ્કોરમાં ઉમેરો
@@ -148,10 +193,7 @@ function endRoundAndCalculateScore() {
     
     console.log('રાઉન્ડ સમાપ્ત થયો. સ્કોર અપડેટ થઈ ગયો.', players);
     
-    // સ્કોર ગણતરી પછી, બધાને સ્કોર મોકલો
     io.emit('scoreUpdate', players); 
-
-    // થોડા સમય પછી નવો રાઉન્ડ શરૂ કરો
     setTimeout(startNewRound, 10000); 
 }
 
