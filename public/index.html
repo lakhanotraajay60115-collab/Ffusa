@@ -31,9 +31,9 @@
 
 <div class="game-container">
     
-    <div class="lang-selector">
+    <div class="lang-selector" style="display: none;"> 
         <label for="language-select" data-translate="languageLabel">ભાષા:</label>
-        <select id="language-select" onchange="updateLanguage(this.value)">
+        <select id="language-select" onchange="handleLanguageChange(this.value)">
             <option value="gu">ગુજરાતી</option>
             <option value="hi">हिन्दी</option>
             <option value="en">English</option>
@@ -92,8 +92,11 @@
     const gameForm = document.getElementById('gameForm');
     const nameRegistration = document.getElementById('nameRegistration');
     const registerButton = document.getElementById('registerButton');
+    const langSelectorDiv = document.querySelector('.lang-selector');
 
     let players = {};
+    let currentLang = 'gu'; // Default to Gujarati
+    let isHost = false; // Host સ્થિતિ સંગ્રહ કરવા માટે
     
     // *** ભાષાંતર માટેનો મુખ્ય ડેટા ઑબ્જેક્ટ ***
     const translations = {
@@ -107,8 +110,8 @@
             villageNameLabel: "🏘️ ગામનું નામ:",
             itemLabel: "🍎 ફળ / ફૂલ / શાકભાજી:",
             submitButton: "જવાબ સબમિટ કરો",
-            registerButton: "જોડાઓ", // નવું
-            promptNameLabel: "કૃપા કરીને તમારું નામ દાખલ કરો:", // નવું
+            registerButton: "જોડાઓ",
+            promptNameLabel: "કૃપા કરીને તમારું નામ દાખલ કરો:",
             boyNamePlaceholder: "અક્ષરથી શરૂ થતું નામ લખો",
             girlNamePlaceholder: "અક્ષરથી શરૂ થતું નામ લખો",
             villageNamePlaceholder: "અક્ષરથી શરૂ થતું ગામનું નામ લખો",
@@ -119,6 +122,9 @@
             answerSent: "જવાબ મોકલી દેવાયો છે. અન્ય ખેલાડીઓની રાહ જુઓ...",
             scoreTitle: "🏆 સ્કોરબોર્ડ",
             scorePoints: (name, score) => `${name}: <b>${score}</b> પોઈન્ટ`,
+            hostMessage: "તમે Host છો. તમે ભાષા બદલી શકો છો.",
+            playerMessage: "તમે ખેલાડી છો.",
+            languageChangeAlert: (lang) => `Host એ ભાષા બદલીને ${translations[lang].title.split(' ')[0]} કરી છે.`,
         },
         hi: {
             title: "अक्षर खेल (हिन्दी)",
@@ -130,8 +136,8 @@
             villageNameLabel: "🏘️ गाँव का नाम:",
             itemLabel: "🍎 फल / फूल / सब्जी:",
             submitButton: "उत्तर सबमिट करें",
-            registerButton: "जुड़ें", // નવું
-            promptNameLabel: "कृपया अपना नाम दर्ज करें:", // નવું
+            registerButton: "जुड़ें",
+            promptNameLabel: "कृपया अपना नाम दर्ज करें:",
             boyNamePlaceholder: "अक्षर से शुरू होने वाला नाम लिखें",
             girlNamePlaceholder: "अक्षर से शुरू होने वाला नाम लिखें",
             villageNamePlaceholder: "अक्षर से शुरू होने वाला गाँव का नाम लिखें",
@@ -142,6 +148,9 @@
             answerSent: "उत्तर भेज दिया गया है। अन्य खिलाड़ियों का इंतज़ार करें...",
             scoreTitle: "🏆 स्कोरबोर्ड",
             scorePoints: (name, score) => `${name}: <b>${score}</b> पॉइंट`,
+            hostMessage: "आप Host हैं। आप भाषा बदल सकते हैं।",
+            playerMessage: "आप खिलाड़ी हैं।",
+            languageChangeAlert: (lang) => `Host ने भाषा बदलकर ${translations[lang].title.split(' ')[0]} कर दी है।`,
         },
         en: {
             title: "Akshar Game (English)",
@@ -153,8 +162,8 @@
             villageNameLabel: "🏘️ Village Name:",
             itemLabel: "🍎 Fruit / Flower / Vegetable:",
             submitButton: "Submit Answer",
-            registerButton: "Join", // નવું
-            promptNameLabel: "Please enter your name:", // નવું
+            registerButton: "Join",
+            promptNameLabel: "Please enter your name:",
             boyNamePlaceholder: "Enter a name starting with the alphabet",
             girlNamePlaceholder: "Enter a name starting with the alphabet",
             villageNamePlaceholder: "Enter a village name starting with the alphabet",
@@ -165,26 +174,24 @@
             answerSent: "Answer submitted. Wait for other players...",
             scoreTitle: "🏆 Scoreboard",
             scorePoints: (name, score) => `${name}: <b>${score}</b> Points`,
+            hostMessage: "You are the Host. You can change the language.",
+            playerMessage: "You are a player.",
+            languageChangeAlert: (lang) => `The Host has changed the language to ${translations[lang].title.split(' ')[0]}.`,
         }
     };
 
-    let currentLang = 'gu'; // Default to Gujarati
-
-    // ભાષા બદલવાનું મુખ્ય ફંક્શન
+    // ભાષા બદલવાનું મુખ્ય ફંક્શન (UI અપડેટ કરવા માટે)
     function updateLanguage(lang) {
         currentLang = lang;
         const currentTranslation = translations[lang];
 
-        // 1. સામાન્ય ટેક્સ્ટનું ભાષાંતર
         document.querySelectorAll('[data-translate]').forEach(element => {
             const key = element.getAttribute('data-translate');
-            // ફંક્શનવાળા કી (જેમ કે connected) ને અહીં અવગણવા
             if (typeof currentTranslation[key] === 'string') {
                 element.textContent = currentTranslation[key];
             }
         });
 
-        // 2. Placeholder ટેક્સ્ટનું ભાષાંતર
         document.querySelectorAll('[data-translate-placeholder]').forEach(element => {
             const key = element.getAttribute('data-translate-placeholder');
             if (currentTranslation[key]) {
@@ -192,12 +199,15 @@
             }
         });
 
-        // 3. ટાઇટલ અપડેટ કરો
         document.title = currentTranslation.title;
-
-        // 4. સ્ટેટસ અપડેટ કરો (જો ખેલાડીઓ જોડાયેલા હોય તો)
         updatePlayerStatus(Object.keys(players).length); 
-        messageElement.textContent = ""; 
+    }
+    
+    // Host દ્વારા ભાષા બદલવાનું સંચાલન
+    function handleLanguageChange(lang) {
+        if (isHost) {
+            socket.emit('setLanguage', lang); // સર્વરને જાણ કરો
+        }
     }
 
     // ખેલાડીનું સ્ટેટસ અપડેટ કરવા માટેનું ફંક્શન
@@ -207,20 +217,43 @@
 
     // કનેક્શન સેટઅપ
     socket.on('connect', () => {
-        // કનેક્ટ થતાની સાથે જ ડિફોલ્ટ ભાષા સેટ કરો
-        updateLanguage(currentLang); 
+        // કનેક્ટ થતાની સાથે જ UI બતાવો
+        nameRegistration.style.display = 'block';
+        gameForm.style.display = 'none';
         
-        // જો ખેલાડીનું નામ હજુ સેટ ન થયું હોય તો રજીસ્ટ્રેશન ફોર્મ બતાવો
-        if (Object.keys(players).length === 0 || !players[socket.id] || players[socket.id].name === 'અજાણ્યો') {
-            nameRegistration.style.display = 'block';
-            gameForm.style.display = 'none';
+        // Host ને વર્તમાન ભાષા પર સેટ થવા દો
+    });
+    
+    // --- Host સ્થિતિ સર્વર દ્વારા નક્કી થાય છે ---
+    socket.on('setHost', (hostStatus) => {
+        isHost = hostStatus;
+        
+        if (isHost) {
+            langSelectorDiv.style.display = 'block'; // Host માટે બતાવો
+            messageElement.style.color = 'blue';
+            messageElement.textContent = translations[currentLang].hostMessage;
         } else {
-            nameRegistration.style.display = 'none';
-            gameForm.style.display = 'block';
+            langSelectorDiv.style.display = 'none'; // અન્ય ખેલાડીઓ માટે છુપાવો
+            messageElement.style.color = 'black';
+            messageElement.textContent = translations[currentLang].playerMessage;
+        }
+    });
+    
+    // --- Host દ્વારા ભાષા બદલવાનું સંચાલન ---
+    socket.on('languageChanged', (newLang) => {
+        currentLang = newLang;
+        // Host દ્વારા બદલાયેલી ભાષાને ક્લાયન્ટ UI માં અપડેટ કરો
+        document.getElementById('language-select').value = newLang;
+        updateLanguage(newLang);
+        
+        // જો હું Host ન હોઉં, તો મને મેસેજ આપો
+        if (!isHost) {
+            messageElement.style.color = 'orange';
+            messageElement.textContent = translations[currentLang].languageChangeAlert(newLang);
         }
     });
 
-    // નામ રજીસ્ટર કરવા માટેનું ફંક્શન (નવું)
+    // નામ રજીસ્ટર કરવા માટેનું ફંક્શન
     registerButton.addEventListener('click', () => {
         const playerNameInput = document.getElementById('playerNameInput');
         const playerName = playerNameInput.value.trim();
@@ -228,8 +261,8 @@
         if (playerName !== "") {
             socket.emit('registerName', playerName);
             nameRegistration.style.display = 'none';
-            gameForm.style.display = 'block'; // નામ રજીસ્ટર થયા પછી ગેમ ફોર્મ બતાવો
-            playerNameInput.value = ""; // ઇનપુટ સાફ કરો
+            // gameForm અહીં નહિ દેખાય, તે newRound પર દેખાશે
+            playerNameInput.value = ""; 
         } else {
             alert("કૃપા કરીને તમારું નામ દાખલ કરો.");
         }
@@ -251,7 +284,6 @@
         players = playersData; 
         
         let html = `<h3>${translations[currentLang].scoreTitle}</h3><ul>`;
-        // સ્કોરને વધુ સ્કોરથી ઓછા સ્કોર તરફ સૉર્ટ કરો
         const sortedPlayers = Object.values(playersData).sort((a, b) => b.score - a.score);
         
         sortedPlayers.forEach(player => {
@@ -273,6 +305,7 @@
     document.getElementById('gameForm').addEventListener('submit', function(event) {
         event.preventDefault();
         
+        // વેલિડેશન હવે સર્વર પર થાય છે, ક્લાયન્ટ ફક્ત ડેટા મોકલશે
         const boyName = document.getElementById('boyName').value.trim();
         const girlName = document.getElementById('girlName').value.trim();
         const villageName = document.getElementById('villageName').value.trim();
@@ -316,4 +349,4 @@ if ('serviceWorker' in navigator) {
 </script>
 
 </body>
-</html>
+                                                                </html>
