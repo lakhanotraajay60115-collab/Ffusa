@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ગુજરાતી અક્ષર ગેમ</title>
+    <title data-translate="title">અક્ષર ગેમ (ગુજરાતી)</title>
 
     <link rel="manifest" href="/manifest.json">
     <meta name="apple-mobile-web-app-capable" content="yes">
@@ -19,40 +19,51 @@
         input[type="text"] { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 6px; box-sizing: border-box; font-size: 16px; }
         button { background-color: #007bff; color: white; padding: 12px 20px; border: none; border-radius: 6px; cursor: pointer; font-size: 18px; width: 100%; transition: background-color 0.3s ease; }
         button:hover { background-color: #0056b3; }
+        .lang-selector { margin-bottom: 15px; text-align: right; }
     </style>
 </head>
 <body>
 
 <div class="game-container">
-    <h1>📝 અક્ષર ગેમ (ગુજરાતી)</h1>
+    
+    <div class="lang-selector">
+        <label for="language-select" data-translate="languageLabel">ભાષા:</label>
+        <select id="language-select" onchange="updateLanguage(this.value)">
+            <option value="gu">ગુજરાતી</option>
+            <option value="hi">हिन्दी</option>
+            <option value="en">English</option>
+        </select>
+    </div>
 
-    <p id="playerStatus">કનેક્ટિંગ...</p>
+    <h1 data-translate="appTitle">📝 અક્ષર ગેમ (ગુજરાતી)</h1>
 
-    <p>આજનો અક્ષર:</p>
+    <p id="playerStatus" data-translate="connecting">કનેક્ટિંગ...</p>
+
+    <p data-translate="currentAlphabetLabel">આજનો અક્ષર:</p>
     <div class="current-alphabet" id="currentAlphabet">?</div> 
 
     <form id="gameForm">
         <div class="input-group">
-            <label for="boyName">👦 છોકરાનું નામ:</label>
-            <input type="text" id="boyName" placeholder="અક્ષરથી શરૂ થતું નામ લખો" required>
+            <label for="boyName" data-translate="boyNameLabel">👦 છોકરાનું નામ:</label>
+            <input type="text" id="boyName" data-translate-placeholder="boyNamePlaceholder" placeholder="અક્ષરથી શરૂ થતું નામ લખો" required>
         </div>
 
         <div class="input-group">
-            <label for="girlName">👧 છોકરીનું નામ:</label>
-            <input type="text" id="girlName" placeholder="અક્ષરથી શરૂ થતું નામ લખો" required>
+            <label for="girlName" data-translate="girlNameLabel">👧 છોકરીનું નામ:</label>
+            <input type="text" id="girlName" data-translate-placeholder="girlNamePlaceholder" placeholder="અક્ષરથી શરૂ થતું નામ લખો" required>
         </div>
 
         <div class="input-group">
-            <label for="villageName">🏘️ ગામનું નામ:</label>
-            <input type="text" id="villageName" placeholder="અક્ષરથી શરૂ થતું ગામનું નામ લખો" required>
+            <label for="villageName" data-translate="villageNameLabel">🏘️ ગામનું નામ:</label>
+            <input type="text" id="villageName" data-translate-placeholder="villageNamePlaceholder" placeholder="અક્ષરથી શરૂ થતું ગામનું નામ લખો" required>
         </div>
 
         <div class="input-group">
-            <label for="item">🍎 ફળ / ફૂલ / શાકભાજી:</label>
-            <input type="text" id="item" placeholder="અક્ષરથી શરૂ થતું નામ લખો" required>
+            <label for="item" data-translate="itemLabel">🍎 ફળ / ફૂલ / શાકભાજી:</label>
+            <input type="text" id="item" data-translate-placeholder="itemPlaceholder" placeholder="અક્ષરથી શરૂ થતું નામ લખો" required>
         </div>
         
-        <button type="submit">જવાબ સબમિટ કરો</button>
+        <button type="submit" data-translate="submitButton">જવાબ સબમિટ કરો</button>
     </form>
 
     <p id="message" style="margin-top: 20px; color: red;"></p>
@@ -62,15 +73,125 @@
 <script src="/socket.io/socket.io.js"></script> 
 
 <script>
-    // ક્લાયંટ JavaScript (Socket.IO કમ્યુનિકેશન)
-
     const socket = io(); 
     const messageElement = document.getElementById('message');
     const scoreDisplayElement = document.getElementById('scoreDisplay');
     
+    // *** ભાષાંતર માટેનો મુખ્ય ડેટા ઑબ્જેક્ટ (JavaScript Logic for Language) ***
+    const translations = {
+        gu: {
+            title: "અક્ષર ગેમ (ગુજરાતી)",
+            languageLabel: "ભાષા:",
+            connecting: "કનેક્ટિંગ...",
+            currentAlphabetLabel: "આજનો અક્ષર:",
+            boyNameLabel: "👦 છોકરાનું નામ:",
+            girlNameLabel: "👧 છોકરીનું નામ:",
+            villageNameLabel: "🏘️ ગામનું નામ:",
+            itemLabel: "🍎 ફળ / ફૂલ / શાકભાજી:",
+            submitButton: "જવાબ સબમિટ કરો",
+            boyNamePlaceholder: "અક્ષરથી શરૂ થતું નામ લખો",
+            girlNamePlaceholder: "અક્ષરથી શરૂ થતું નામ લખો",
+            villageNamePlaceholder: "અક્ષરથી શરૂ થતું ગામનું નામ લખો",
+            itemPlaceholder: "અક્ષરથી શરૂ થતું નામ લખો",
+            connected: (count) => `ખેલાડીઓ જોડાયેલા: ${count}`,
+            promptName: "કૃપા કરીને તમારું નામ દાખલ કરો:",
+            roundStart: (alpha, round) => `રાઉન્ડ શરૂ! અક્ષર '${alpha}'! (રાઉન્ડ: ${round})`,
+            fillAll: "કૃપા કરીને બધા બોક્સ ભરો.",
+            answerSent: "જવાબ મોકલી દેવાયો છે. અન્ય ખેલાડીઓની રાહ જુઓ...",
+            scoreTitle: "🏆 સ્કોરબોર્ડ",
+            scorePoints: (name, score) => `${name}: <b>${score}</b> પોઈન્ટ`,
+        },
+        hi: {
+            title: "अक्षर खेल (हिन्दी)",
+            languageLabel: "भाषा:",
+            connecting: "कनेक्ट हो रहा है...",
+            currentAlphabetLabel: "आज का अक्षर:",
+            boyNameLabel: "👦 लड़के का नाम:",
+            girlNameLabel: "👧 लड़की का नाम:",
+            villageNameLabel: "🏘️ गाँव का नाम:",
+            itemLabel: "🍎 फल / फूल / सब्जी:",
+            submitButton: "उत्तर सबमिट करें",
+            boyNamePlaceholder: "अक्षर से शुरू होने वाला नाम लिखें",
+            girlNamePlaceholder: "अक्षर से शुरू होने वाला नाम लिखें",
+            villageNamePlaceholder: "अक्षर से शुरू होने वाला गाँव का नाम लिखें",
+            itemPlaceholder: "अक्षर से शुरू होने वाला नाम लिखें",
+            connected: (count) => `खिलाड़ी जुड़े हुए हैं: ${count}`,
+            promptName: "कृपया अपना नाम दर्ज करें:",
+            roundStart: (alpha, round) => `राउंड शुरू! अक्षर '${alpha}'! (राउंड: ${round})`,
+            fillAll: "कृपया सभी बॉक्स भरें।",
+            answerSent: "उत्तर भेज दिया गया है। अन्य खिलाड़ियों का इंतज़ार करें...",
+            scoreTitle: "🏆 स्कोरबोर्ड",
+            scorePoints: (name, score) => `${name}: <b>${score}</b> पॉइंट`,
+        },
+        en: {
+            title: "Akshar Game (English)",
+            languageLabel: "Language:",
+            connecting: "Connecting...",
+            currentAlphabetLabel: "Current Alphabet:",
+            boyNameLabel: "👦 Boy's Name:",
+            girlNameLabel: "👧 Girl's Name:",
+            villageNameLabel: "🏘️ Village Name:",
+            itemLabel: "🍎 Fruit / Flower / Vegetable:",
+            submitButton: "Submit Answer",
+            boyNamePlaceholder: "Enter a name starting with the alphabet",
+            girlNamePlaceholder: "Enter a name starting with the alphabet",
+            villageNamePlaceholder: "Enter a village name starting with the alphabet",
+            itemPlaceholder: "Enter a name starting with the alphabet",
+            connected: (count) => `Players Connected: ${count}`,
+            promptName: "Please enter your name:",
+            roundStart: (alpha, round) => `Round Start! Alphabet '${alpha}'! (Round: ${round})`,
+            fillAll: "Please fill all boxes.",
+            answerSent: "Answer submitted. Wait for other players...",
+            scoreTitle: "🏆 Scoreboard",
+            scorePoints: (name, score) => `${name}: <b>${score}</b> Points`,
+        }
+    };
+
+    let currentLang = 'gu'; // Default to Gujarati
+
+    // ભાષા બદલવાનું મુખ્ય ફંક્શન
+    function updateLanguage(lang) {
+        currentLang = lang;
+        const currentTranslation = translations[lang];
+
+        // 1. સામાન્ય ટેક્સ્ટનું ભાષાંતર
+        document.querySelectorAll('[data-translate]').forEach(element => {
+            const key = element.getAttribute('data-translate');
+            if (currentTranslation[key]) {
+                element.textContent = currentTranslation[key];
+            }
+        });
+
+        // 2. Placeholder ટેક્સ્ટનું ભાષાંતર
+        document.querySelectorAll('[data-translate-placeholder]').forEach(element => {
+            const key = element.getAttribute('data-translate-placeholder');
+            if (currentTranslation[key]) {
+                element.placeholder = currentTranslation[key];
+            }
+        });
+
+        // 3. ટાઇટલ અપડેટ કરો
+        document.title = currentTranslation.title;
+
+        // 4. સ્ટેટસ અને મેસેજ અપડેટ કરો (જો હોય તો)
+        updatePlayerStatus(Object.keys(players).length); // ખેલાડીઓની સંખ્યાના આધારે સ્ટેટસ અપડેટ કરો
+        messageElement.textContent = ""; // મેસેજ ખાલી કરો
+
+        // 5. સ્કોર અપડેટ કરો
+        // જો સ્કોરબોર્ડમાં ડેટા હોય તો તેને ફરીથી રેન્ડર કરો
+        // (નોંધ: આના માટે players ઑબ્જેક્ટની વૈશ્વિક ઍક્સેસ જરૂરી છે, જે હાલમાં અહીં નથી, તેથી આ પગલું સર્વરના 'scoreUpdate' પર નિર્ભર રહેશે.)
+    }
+
+    // ખેલાડીનું સ્ટેટસ અપડેટ કરવા માટેનું ફંક્શન
+    function updatePlayerStatus(count) {
+        document.getElementById('playerStatus').textContent = translations[currentLang].connected(count);
+    }
+
     // કનેક્શન સેટઅપ
     socket.on('connect', () => {
-        document.getElementById('playerStatus').textContent = "કનેક્ટેડ. તમારું નામ દાખલ કરો.";
+        // કનેક્ટ થતાની સાથે જ ડિફોલ્ટ ભાષા સેટ કરો
+        updateLanguage(currentLang); 
+        updatePlayerStatus(Object.keys(players).length); 
         promptForName();
     });
     
@@ -79,14 +200,17 @@
         document.getElementById('currentAlphabet').textContent = data.alphabet;
         document.getElementById('gameForm').reset(); 
         messageElement.style.color = 'green';
-        messageElement.textContent = `રાઉન્ડ શરૂ! અક્ષર '${data.alphabet}'! (રાઉન્ડ: ${data.roundNumber})`;
+        messageElement.textContent = translations[currentLang].roundStart(data.alphabet, data.roundNumber);
     });
 
     // જ્યારે સર્વર તરફથી સ્કોર અપડેટ થાય
     socket.on('scoreUpdate', (playersData) => {
-        let html = '<h3>🏆 સ્કોરબોર્ડ</h3><ul>';
+        // players ઑબ્જેક્ટને અપડેટ કરો જેથી અન્ય ફંક્શન તેનો ઉપયોગ કરી શકે
+        players = playersData; 
+        
+        let html = `<h3>${translations[currentLang].scoreTitle}</h3><ul>`;
         for (const id in playersData) {
-            html += `<li>${playersData[id].name}: <b>${playersData[id].score}</b> પોઈન્ટ</li>`;
+            html += `<li>${translations[currentLang].scorePoints(playersData[id].name, playersData[id].score)}</li>`;
         }
         html += '</ul>';
         scoreDisplayElement.innerHTML = html;
@@ -94,8 +218,9 @@
 
     // ખેલાડીઓની યાદી અપડેટ
     socket.on('playerListUpdate', (playersData) => {
+        players = playersData;
         const count = Object.keys(playersData).length;
-         document.getElementById('playerStatus').textContent = `ખેલાડીઓ જોડાયેલા: ${count}`;
+        updatePlayerStatus(count);
     });
     
     // જ્યારે ફોર્મ સબમિટ થાય
@@ -109,7 +234,7 @@
 
         if (!boyName || !girlName || !villageName || !item) {
             messageElement.style.color = 'red';
-            messageElement.textContent = "કૃપા કરીને બધા બોક્સ ભરો.";
+            messageElement.textContent = translations[currentLang].fillAll;
             return;
         }
 
@@ -122,24 +247,27 @@
         });
         
         messageElement.style.color = 'orange';
-        messageElement.textContent = "જવાબ મોકલી દેવાયો છે. અન્ય ખેલાડીઓની રાહ જુઓ...";
+        messageElement.textContent = translations[currentLang].answerSent;
     });
 
     // ગેમ શરૂ થાય ત્યારે ખેલાડીનું નામ પૂછવું
     function promptForName() {
-        let playerName = prompt("કૃપા કરીને તમારું નામ દાખલ કરો:");
+        let playerName = prompt(translations[currentLang].promptName);
         if (playerName && playerName.trim() !== "") {
             socket.emit('registerName', playerName.trim());
         } else {
             promptForName(); 
         }
     }
+    
+    // શરૂઆતમાં ભાષા લોડ કરો (જો બ્રાઉઝર સેટિંગ્સમાંથી કોઈ સેવ્ડ લેંગ્વેજ હોય તો)
+    // અહીં અમે હમણાં 'gu' (ગુજરાતી) ડિફોલ્ટ રાખીશું.
+    updateLanguage('gu');
 </script>
 
 <script>
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
-    // Service Worker ને રજીસ્ટર કરો
     navigator.serviceWorker.register('/service-worker.js')
       .then(registration => {
         console.log('ServiceWorker registered:', registration);
@@ -152,4 +280,4 @@ if ('serviceWorker' in navigator) {
 </script>
 
 </body>
-</html>
+    </html>
