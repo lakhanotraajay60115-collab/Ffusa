@@ -81,18 +81,71 @@ function endRoundAndCalculateScore() {
     if (!roundActive) return;
     roundActive = false;
     
-    // *** અહીં તમારું 5 પોઈન્ટ / 10 પોઈન્ટનું જટિલ સ્કોરિંગ લોજિક આવશે. ***
-    // 1. બધા જવાબોની તુલના કરવી.
-    // 2. દરેક કેટેગરી (Boy Name, Girl Name, etc.) માં સમાનતા તપાસવી.
-    // 3. players ઑબ્જેક્ટમાં સ્કોર અપડેટ કરવો.
+    const currentAlphabetToMatch = currentAlphabet.trim();
+    const categories = ['boy', 'girl', 'village', 'item'];
     
-    // ઉદાહરણ તરીકે:
-    console.log('સ્કોરની ગણતરી...', answers); 
+    // 1. દરેક કેટેગરીમાં જવાબોની ગણતરી કરો
+    const answerCounts = {};
+    
+    categories.forEach(category => {
+        answerCounts[category] = {};
+        answers.forEach(answer => {
+            const answerValue = answer.data[category].trim();
+            if (answerValue) {
+                // નાના અક્ષરોમાં રૂપાંતરિત કરીને ગણતરી કરો
+                const normalizedAnswer = answerValue.toLowerCase();
+                answerCounts[category][normalizedAnswer] = (answerCounts[category][normalizedAnswer] || 0) + 1;
+            }
+        });
+    });
+
+    // 2. દરેક ખેલાડી માટે સ્કોરની ગણતરી કરો
+    answers.forEach(submission => {
+        let roundScore = 0;
+        const playerId = submission.playerId;
+        
+        categories.forEach(category => {
+            const answerValue = submission.data[category].trim();
+            
+            // જો જવાબ ખાલી હોય તો 0 પોઈન્ટ
+            if (!answerValue) {
+                return; 
+            }
+
+            // પ્રથમ અક્ષરની ચકાસણી (Validation)
+            // charAt(0) ગુજરાતી માટે પણ યોગ્ય રીતે કામ કરવું જોઈએ
+            const firstChar = answerValue.charAt(0);
+            
+            // જો જવાબ વર્તમાન અક્ષરથી શરૂ થતો ન હોય તો 0 પોઈન્ટ (નીચેના કોડ દ્વારા સંભાળાય છે)
+            if (firstChar !== currentAlphabetToMatch) {
+                return;
+            }
+
+            // યુનિકનેસ (Uniqueness) ચકાસણી
+            const normalizedAnswer = answerValue.toLowerCase();
+            const count = answerCounts[category][normalizedAnswer];
+
+            if (count === 1) {
+                // અનોખો જવાબ: 10 પોઈન્ટ
+                roundScore += 10;
+            } else if (count > 1) {
+                // મેચ થયેલો જવાબ: 5 પોઈન્ટ
+                roundScore += 5;
+            }
+            // જો અક્ષર મેચ ન થાય તો 0
+        });
+
+        // ખેલાડીના કુલ સ્કોરમાં ઉમેરો
+        players[playerId].score += roundScore;
+        console.log(`${players[playerId].name} ને આ રાઉન્ડમાં ${roundScore} પોઈન્ટ મળ્યા.`);
+    });
+    
+    console.log('રાઉન્ડ સમાપ્ત થયો. સ્કોર અપડેટ થઈ ગયો.', players);
     
     // સ્કોર ગણતરી પછી, બધાને સ્કોર મોકલો
     io.emit('scoreUpdate', players); 
 
-    // થોડા સમય પછી નવો રાઉન્ડ શરૂ કરો (જો 10 રાઉન્ડ પૂરા ન થયા હોય)
+    // થોડા સમય પછી નવો રાઉન્ડ શરૂ કરો
     setTimeout(startNewRound, 10000); 
 }
 
