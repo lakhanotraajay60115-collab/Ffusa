@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="gu">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ગુજરાતી અક્ષર ગેમ</title>
+    <style>
+        /* CSS કોડ અહીં છે */
+        body { font-family: Arial, sans-serif; background-color: #f4f7f6; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; color: #333; }
+        .game-container { background-color: #fff; padding: 30px; border-radius: 12px; box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1); width: 100%; max-width: 400px; text-align: center; }
+        h1 { color: #007bff; margin-bottom: 20px; }
+        .current-alphabet { font-size: 4em; color: #28a745; margin: 15px 0; font-weight: bold; }
+        .input-group { margin-bottom: 15px; text-align: left; }
+        label { display: block; margin-bottom: 5px; font-weight: bold; }
+        input[type="text"] { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 6px; box-sizing: border-box; font-size: 16px; }
+        button { background-color: #007bff; color: white; padding: 12px 20px; border: none; border-radius: 6px; cursor: pointer; font-size: 18px; width: 100%; transition: background-color 0.3s ease; }
+        button:hover { background-color: #0056b3; }
+    </style>
+</head>
+<body>
+
+<div class="game-container">
+    <h1>📝 અક્ષર ગેમ (ગુજરાતી)</h1>
+
+    <p id="playerStatus">કનેક્ટિંગ...</p>
+
+    <p>આજનો અક્ષર:</p>
+    <div class="current-alphabet" id="currentAlphabet">?</div> 
+
+    <form id="gameForm">
+        <div class="input-group">
+            <label for="boyName">👦 છોકરાનું નામ:</label>
+            <input type="text" id="boyName" placeholder="અક્ષરથી શરૂ થતું નામ લખો" required>
+        </div>
+
+        <div class="input-group">
+            <label for="girlName">👧 છોકરીનું નામ:</label>
+            <input type="text" id="girlName" placeholder="અક્ષરથી શરૂ થતું નામ લખો" required>
+        </div>
+
+        <div class="input-group">
+            <label for="villageName">🏘️ ગામનું નામ:</label>
+            <input type="text" id="villageName" placeholder="અક્ષરથી શરૂ થતું ગામનું નામ લખો" required>
+        </div>
+
+        <div class="input-group">
+            <label for="item">🍎 ફળ / ફૂલ / શાકભાજી:</label>
+            <input type="text" id="item" placeholder="અક્ષરથી શરૂ થતું નામ લખો" required>
+        </div>
+
+        <button type="submit">જવાબ સબમિટ કરો</button>
+    </form>
+
+    <p id="message" style="margin-top: 20px; color: red;"></p>
+    <div id="scoreDisplay"></div>
+</div>
+
+<script src="/socket.io/socket.io.js"></script> 
+
+<script>
+    // ક્લાયંટ JavaScript (Socket.IO કમ્યુનિકેશન)
+
+    const socket = io(); 
+    const messageElement = document.getElementById('message');
+    const scoreDisplayElement = document.getElementById('scoreDisplay');
+
+    // કનેક્શન સેટઅપ
+    socket.on('connect', () => {
+        document.getElementById('playerStatus').textContent = "કનેક્ટેડ. તમારું નામ દાખલ કરો.";
+        promptForName();
+    });
+
+    // જ્યારે સર્વર તરફથી નવો રાઉન્ડ શરૂ થવાનો મેસેજ આવે
+    socket.on('newRound', (data) => {
+        document.getElementById('currentAlphabet').textContent = data.alphabet;
+        document.getElementById('gameForm').reset(); 
+        messageElement.style.color = 'green';
+        messageElement.textContent = `રાઉન્ડ શરૂ! અક્ષર '${data.alphabet}'! (રાઉન્ડ: ${data.roundNumber})`;
+    });
+
+    // જ્યારે સર્વર તરફથી સ્કોર અપડેટ થાય
+    socket.on('scoreUpdate', (playersData) => {
+        let html = '<h3>🏆 સ્કોરબોર્ડ</h3><ul>';
+        for (const id in playersData) {
+            html += `<li>${playersData[id].name}: <b>${playersData[id].score}</b> પોઈન્ટ</li>`;
+        }
+        html += '</ul>';
+        scoreDisplayElement.innerHTML = html;
+    });
+
+    // ખેલાડીઓની યાદી અપડેટ
+    socket.on('playerListUpdate', (playersData) => {
+        const count = Object.keys(playersData).length;
+         document.getElementById('playerStatus').textContent = `ખેલાડીઓ જોડાયેલા: ${count}`;
+    });
+
+    // જ્યારે ફોર્મ સબમિટ થાય
+    document.getElementById('gameForm').addEventListener('submit', function(event) {
+        event.preventDefault();
+
+        const boyName = document.getElementById('boyName').value.trim();
+        const girlName = document.getElementById('girlName').value.trim();
+        const villageName = document.getElementById('villageName').value.trim();
+        const item = document.getElementById('item').value.trim();
+
+        if (!boyName || !girlName || !villageName || !item) {
+            messageElement.style.color = 'red';
+            messageElement.textContent = "કૃપા કરીને બધા બોક્સ ભરો.";
+            return;
+        }
+
+        // જવાબને સર્વર પર મોકલો (Emit)
+        socket.emit('submitAnswer', {
+            boy: boyName, 
+            girl: girlName, 
+            village: villageName, 
+            item: item
+        });
+
+        messageElement.style.color = 'orange';
+        messageElement.textContent = "જવાબ મોકલી દેવાયો છે. અન્ય ખેલાડીઓની રાહ જુઓ...";
+    });
+
+    // ગેમ શરૂ થાય ત્યારે ખેલાડીનું નામ પૂછવું
+    function promptForName() {
+        let playerName = prompt("કૃપા કરીને તમારું નામ દાખલ કરો:");
+        if (playerName && playerName.trim() !== "") {
+            socket.emit('registerName', playerName.trim());
+        } else {
+            promptForName(); 
+        }
+    }
+</script>
+
+</body>
+</html>
