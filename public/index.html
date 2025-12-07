@@ -4,8 +4,12 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ગુજરાતી અક્ષર ગેમ</title>
+
+    <link rel="manifest" href="/manifest.json">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+
     <style>
-        /* CSS કોડ અહીં છે */
+        /* CSS કોડ */
         body { font-family: Arial, sans-serif; background-color: #f4f7f6; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; color: #333; }
         .game-container { background-color: #fff; padding: 30px; border-radius: 12px; box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1); width: 100%; max-width: 400px; text-align: center; }
         h1 { color: #007bff; margin-bottom: 20px; }
@@ -47,7 +51,7 @@
             <label for="item">🍎 ફળ / ફૂલ / શાકભાજી:</label>
             <input type="text" id="item" placeholder="અક્ષરથી શરૂ થતું નામ લખો" required>
         </div>
-
+        
         <button type="submit">જવાબ સબમિટ કરો</button>
     </form>
 
@@ -63,13 +67,13 @@
     const socket = io(); 
     const messageElement = document.getElementById('message');
     const scoreDisplayElement = document.getElementById('scoreDisplay');
-
+    
     // કનેક્શન સેટઅપ
     socket.on('connect', () => {
         document.getElementById('playerStatus').textContent = "કનેક્ટેડ. તમારું નામ દાખલ કરો.";
         promptForName();
     });
-
+    
     // જ્યારે સર્વર તરફથી નવો રાઉન્ડ શરૂ થવાનો મેસેજ આવે
     socket.on('newRound', (data) => {
         document.getElementById('currentAlphabet').textContent = data.alphabet;
@@ -93,11 +97,11 @@
         const count = Object.keys(playersData).length;
          document.getElementById('playerStatus').textContent = `ખેલાડીઓ જોડાયેલા: ${count}`;
     });
-
+    
     // જ્યારે ફોર્મ સબમિટ થાય
     document.getElementById('gameForm').addEventListener('submit', function(event) {
         event.preventDefault();
-
+        
         const boyName = document.getElementById('boyName').value.trim();
         const girlName = document.getElementById('girlName').value.trim();
         const villageName = document.getElementById('villageName').value.trim();
@@ -116,7 +120,7 @@
             village: villageName, 
             item: item
         });
-
+        
         messageElement.style.color = 'orange';
         messageElement.textContent = "જવાબ મોકલી દેવાયો છે. અન્ય ખેલાડીઓની રાહ જુઓ...";
     });
@@ -130,6 +134,21 @@
             promptForName(); 
         }
     }
+</script>
+
+<script>
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    // Service Worker ને રજીસ્ટર કરો
+    navigator.serviceWorker.register('/service-worker.js')
+      .then(registration => {
+        console.log('ServiceWorker registered:', registration);
+      })
+      .catch(error => {
+        console.log('ServiceWorker registration failed:', error);
+      });
+  });
+}
 </script>
 
 </body>
