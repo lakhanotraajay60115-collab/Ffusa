@@ -20,6 +20,11 @@
         button { background-color: #007bff; color: white; padding: 12px 20px; border: none; border-radius: 6px; cursor: pointer; font-size: 18px; width: 100%; transition: background-color 0.3s ease; }
         button:hover { background-color: #0056b3; }
         .lang-selector { margin-bottom: 15px; text-align: right; }
+        
+        /* પ્રારંભિક છુપાવવું */
+        #gameForm { display: none; }
+        #nameRegistration { display: block; }
+        #scoreDisplay { margin-top: 20px; }
     </style>
 </head>
 <body>
@@ -38,11 +43,19 @@
     <h1 data-translate="appTitle">📝 અક્ષર ગેમ (ગુજરાતી)</h1>
 
     <p id="playerStatus" data-translate="connecting">કનેક્ટિંગ...</p>
-
-    <p data-translate="currentAlphabetLabel">આજનો અક્ષર:</p>
-    <div class="current-alphabet" id="currentAlphabet">?</div> 
-
-    <form id="gameForm">
+    
+    <div id="nameRegistration" style="display: none;">
+        <div class="input-group">
+            <label for="playerNameInput" data-translate="promptNameLabel">કૃપા કરીને તમારું નામ દાખલ કરો:</label>
+            <input type="text" id="playerNameInput" placeholder="અહીં તમારું નામ લખો" required>
+        </div>
+        <button id="registerButton" data-translate="registerButton">જોડાઓ</button>
+    </div>
+    
+    <form id="gameForm" style="display: none;">
+        <p data-translate="currentAlphabetLabel">આજનો અક્ષર:</p>
+        <div class="current-alphabet" id="currentAlphabet">?</div> 
+        
         <div class="input-group">
             <label for="boyName" data-translate="boyNameLabel">👦 છોકરાનું નામ:</label>
             <input type="text" id="boyName" data-translate-placeholder="boyNamePlaceholder" placeholder="અક્ષરથી શરૂ થતું નામ લખો" required>
@@ -76,8 +89,13 @@
     const socket = io(); 
     const messageElement = document.getElementById('message');
     const scoreDisplayElement = document.getElementById('scoreDisplay');
+    const gameForm = document.getElementById('gameForm');
+    const nameRegistration = document.getElementById('nameRegistration');
+    const registerButton = document.getElementById('registerButton');
+
+    let players = {};
     
-    // *** ભાષાંતર માટેનો મુખ્ય ડેટા ઑબ્જેક્ટ (JavaScript Logic for Language) ***
+    // *** ભાષાંતર માટેનો મુખ્ય ડેટા ઑબ્જેક્ટ ***
     const translations = {
         gu: {
             title: "અક્ષર ગેમ (ગુજરાતી)",
@@ -89,12 +107,13 @@
             villageNameLabel: "🏘️ ગામનું નામ:",
             itemLabel: "🍎 ફળ / ફૂલ / શાકભાજી:",
             submitButton: "જવાબ સબમિટ કરો",
+            registerButton: "જોડાઓ", // નવું
+            promptNameLabel: "કૃપા કરીને તમારું નામ દાખલ કરો:", // નવું
             boyNamePlaceholder: "અક્ષરથી શરૂ થતું નામ લખો",
             girlNamePlaceholder: "અક્ષરથી શરૂ થતું નામ લખો",
             villageNamePlaceholder: "અક્ષરથી શરૂ થતું ગામનું નામ લખો",
             itemPlaceholder: "અક્ષરથી શરૂ થતું નામ લખો",
             connected: (count) => `ખેલાડીઓ જોડાયેલા: ${count}`,
-            promptName: "કૃપા કરીને તમારું નામ દાખલ કરો:",
             roundStart: (alpha, round) => `રાઉન્ડ શરૂ! અક્ષર '${alpha}'! (રાઉન્ડ: ${round})`,
             fillAll: "કૃપા કરીને બધા બોક્સ ભરો.",
             answerSent: "જવાબ મોકલી દેવાયો છે. અન્ય ખેલાડીઓની રાહ જુઓ...",
@@ -111,12 +130,13 @@
             villageNameLabel: "🏘️ गाँव का नाम:",
             itemLabel: "🍎 फल / फूल / सब्जी:",
             submitButton: "उत्तर सबमिट करें",
+            registerButton: "जुड़ें", // નવું
+            promptNameLabel: "कृपया अपना नाम दर्ज करें:", // નવું
             boyNamePlaceholder: "अक्षर से शुरू होने वाला नाम लिखें",
             girlNamePlaceholder: "अक्षर से शुरू होने वाला नाम लिखें",
             villageNamePlaceholder: "अक्षर से शुरू होने वाला गाँव का नाम लिखें",
             itemPlaceholder: "अक्षर से शुरू होने वाला नाम लिखें",
             connected: (count) => `खिलाड़ी जुड़े हुए हैं: ${count}`,
-            promptName: "कृपया अपना नाम दर्ज करें:",
             roundStart: (alpha, round) => `राउंड शुरू! अक्षर '${alpha}'! (राउंड: ${round})`,
             fillAll: "कृपया सभी बॉक्स भरें।",
             answerSent: "उत्तर भेज दिया गया है। अन्य खिलाड़ियों का इंतज़ार करें...",
@@ -133,12 +153,13 @@
             villageNameLabel: "🏘️ Village Name:",
             itemLabel: "🍎 Fruit / Flower / Vegetable:",
             submitButton: "Submit Answer",
+            registerButton: "Join", // નવું
+            promptNameLabel: "Please enter your name:", // નવું
             boyNamePlaceholder: "Enter a name starting with the alphabet",
             girlNamePlaceholder: "Enter a name starting with the alphabet",
             villageNamePlaceholder: "Enter a village name starting with the alphabet",
             itemPlaceholder: "Enter a name starting with the alphabet",
             connected: (count) => `Players Connected: ${count}`,
-            promptName: "Please enter your name:",
             roundStart: (alpha, round) => `Round Start! Alphabet '${alpha}'! (Round: ${round})`,
             fillAll: "Please fill all boxes.",
             answerSent: "Answer submitted. Wait for other players...",
@@ -157,7 +178,8 @@
         // 1. સામાન્ય ટેક્સ્ટનું ભાષાંતર
         document.querySelectorAll('[data-translate]').forEach(element => {
             const key = element.getAttribute('data-translate');
-            if (currentTranslation[key]) {
+            // ફંક્શનવાળા કી (જેમ કે connected) ને અહીં અવગણવા
+            if (typeof currentTranslation[key] === 'string') {
                 element.textContent = currentTranslation[key];
             }
         });
@@ -173,13 +195,9 @@
         // 3. ટાઇટલ અપડેટ કરો
         document.title = currentTranslation.title;
 
-        // 4. સ્ટેટસ અને મેસેજ અપડેટ કરો (જો હોય તો)
-        updatePlayerStatus(Object.keys(players).length); // ખેલાડીઓની સંખ્યાના આધારે સ્ટેટસ અપડેટ કરો
-        messageElement.textContent = ""; // મેસેજ ખાલી કરો
-
-        // 5. સ્કોર અપડેટ કરો
-        // જો સ્કોરબોર્ડમાં ડેટા હોય તો તેને ફરીથી રેન્ડર કરો
-        // (નોંધ: આના માટે players ઑબ્જેક્ટની વૈશ્વિક ઍક્સેસ જરૂરી છે, જે હાલમાં અહીં નથી, તેથી આ પગલું સર્વરના 'scoreUpdate' પર નિર્ભર રહેશે.)
+        // 4. સ્ટેટસ અપડેટ કરો (જો ખેલાડીઓ જોડાયેલા હોય તો)
+        updatePlayerStatus(Object.keys(players).length); 
+        messageElement.textContent = ""; 
     }
 
     // ખેલાડીનું સ્ટેટસ અપડેટ કરવા માટેનું ફંક્શન
@@ -191,27 +209,55 @@
     socket.on('connect', () => {
         // કનેક્ટ થતાની સાથે જ ડિફોલ્ટ ભાષા સેટ કરો
         updateLanguage(currentLang); 
-        updatePlayerStatus(Object.keys(players).length); 
-        promptForName();
+        
+        // જો ખેલાડીનું નામ હજુ સેટ ન થયું હોય તો રજીસ્ટ્રેશન ફોર્મ બતાવો
+        if (Object.keys(players).length === 0 || !players[socket.id] || players[socket.id].name === 'અજાણ્યો') {
+            nameRegistration.style.display = 'block';
+            gameForm.style.display = 'none';
+        } else {
+            nameRegistration.style.display = 'none';
+            gameForm.style.display = 'block';
+        }
     });
-    
+
+    // નામ રજીસ્ટર કરવા માટેનું ફંક્શન (નવું)
+    registerButton.addEventListener('click', () => {
+        const playerNameInput = document.getElementById('playerNameInput');
+        const playerName = playerNameInput.value.trim();
+
+        if (playerName !== "") {
+            socket.emit('registerName', playerName);
+            nameRegistration.style.display = 'none';
+            gameForm.style.display = 'block'; // નામ રજીસ્ટર થયા પછી ગેમ ફોર્મ બતાવો
+            playerNameInput.value = ""; // ઇનપુટ સાફ કરો
+        } else {
+            alert("કૃપા કરીને તમારું નામ દાખલ કરો.");
+        }
+    });
+
+
     // જ્યારે સર્વર તરફથી નવો રાઉન્ડ શરૂ થવાનો મેસેજ આવે
     socket.on('newRound', (data) => {
         document.getElementById('currentAlphabet').textContent = data.alphabet;
         document.getElementById('gameForm').reset(); 
         messageElement.style.color = 'green';
         messageElement.textContent = translations[currentLang].roundStart(data.alphabet, data.roundNumber);
+        gameForm.style.display = 'block'; // રાઉન્ડ શરૂ થાય ત્યારે ગેમ ફોર્મ બતાવો
+        nameRegistration.style.display = 'none'; // નામ રજીસ્ટ્રેશન છુપાવો
     });
 
     // જ્યારે સર્વર તરફથી સ્કોર અપડેટ થાય
     socket.on('scoreUpdate', (playersData) => {
-        // players ઑબ્જેક્ટને અપડેટ કરો જેથી અન્ય ફંક્શન તેનો ઉપયોગ કરી શકે
         players = playersData; 
         
         let html = `<h3>${translations[currentLang].scoreTitle}</h3><ul>`;
-        for (const id in playersData) {
-            html += `<li>${translations[currentLang].scorePoints(playersData[id].name, playersData[id].score)}</li>`;
-        }
+        // સ્કોરને વધુ સ્કોરથી ઓછા સ્કોર તરફ સૉર્ટ કરો
+        const sortedPlayers = Object.values(playersData).sort((a, b) => b.score - a.score);
+        
+        sortedPlayers.forEach(player => {
+            html += `<li>${translations[currentLang].scorePoints(player.name, player.score)}</li>`;
+        });
+        
         html += '</ul>';
         scoreDisplayElement.innerHTML = html;
     });
@@ -250,18 +296,8 @@
         messageElement.textContent = translations[currentLang].answerSent;
     });
 
-    // ગેમ શરૂ થાય ત્યારે ખેલાડીનું નામ પૂછવું
-    function promptForName() {
-        let playerName = prompt(translations[currentLang].promptName);
-        if (playerName && playerName.trim() !== "") {
-            socket.emit('registerName', playerName.trim());
-        } else {
-            promptForName(); 
-        }
-    }
     
-    // શરૂઆતમાં ભાષા લોડ કરો (જો બ્રાઉઝર સેટિંગ્સમાંથી કોઈ સેવ્ડ લેંગ્વેજ હોય તો)
-    // અહીં અમે હમણાં 'gu' (ગુજરાતી) ડિફોલ્ટ રાખીશું.
+    // શરૂઆતમાં ભાષા લોડ કરો
     updateLanguage('gu');
 </script>
 
@@ -280,4 +316,4 @@ if ('serviceWorker' in navigator) {
 </script>
 
 </body>
-    </html>
+</html>
