@@ -1,352 +1,167 @@
-<!DOCTYPE html>
-<html lang="gu">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title data-translate="title">અક્ષર ગેમ (ગુજરાતી)</title>
-
-    <link rel="manifest" href="/manifest.json">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-
-    <style>
-        /* CSS કોડ */
-        body { font-family: Arial, sans-serif; background-color: #f4f7f6; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; color: #333; }
-        .game-container { background-color: #fff; padding: 30px; border-radius: 12px; box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1); width: 100%; max-width: 400px; text-align: center; }
-        h1 { color: #007bff; margin-bottom: 20px; }
-        .current-alphabet { font-size: 4em; color: #28a745; margin: 15px 0; font-weight: bold; }
-        .input-group { margin-bottom: 15px; text-align: left; }
-        label { display: block; margin-bottom: 5px; font-weight: bold; }
-        input[type="text"] { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 6px; box-sizing: border-box; font-size: 16px; }
-        button { background-color: #007bff; color: white; padding: 12px 20px; border: none; border-radius: 6px; cursor: pointer; font-size: 18px; width: 100%; transition: background-color 0.3s ease; }
-        button:hover { background-color: #0056b3; }
-        .lang-selector { margin-bottom: 15px; text-align: right; }
-        
-        /* પ્રારંભિક છુપાવવું */
-        #gameForm { display: none; }
-        #nameRegistration { display: block; }
-        #scoreDisplay { margin-top: 20px; }
-    </style>
-</head>
-<body>
-
-<div class="game-container">
-    
-    <div class="lang-selector" style="display: none;"> 
-        <label for="language-select" data-translate="languageLabel">ભાષા:</label>
-        <select id="language-select" onchange="handleLanguageChange(this.value)">
-            <option value="gu">ગુજરાતી</option>
-            <option value="hi">हिन्दी</option>
-            <option value="en">English</option>
-        </select>
-    </div>
-
-    <h1 data-translate="appTitle">📝 અક્ષર ગેમ (ગુજરાતી)</h1>
-
-    <p id="playerStatus" data-translate="connecting">કનેક્ટિંગ...</p>
-    
-    <div id="nameRegistration" style="display: none;">
-        <div class="input-group">
-            <label for="playerNameInput" data-translate="promptNameLabel">કૃપા કરીને તમારું નામ દાખલ કરો:</label>
-            <input type="text" id="playerNameInput" placeholder="અહીં તમારું નામ લખો" required>
-        </div>
-        <button id="registerButton" data-translate="registerButton">જોડાઓ</button>
-    </div>
-    
-    <form id="gameForm" style="display: none;">
-        <p data-translate="currentAlphabetLabel">આજનો અક્ષર:</p>
-        <div class="current-alphabet" id="currentAlphabet">?</div> 
-        
-        <div class="input-group">
-            <label for="boyName" data-translate="boyNameLabel">👦 છોકરાનું નામ:</label>
-            <input type="text" id="boyName" data-translate-placeholder="boyNamePlaceholder" placeholder="અક્ષરથી શરૂ થતું નામ લખો" required>
-        </div>
-
-        <div class="input-group">
-            <label for="girlName" data-translate="girlNameLabel">👧 છોકરીનું નામ:</label>
-            <input type="text" id="girlName" data-translate-placeholder="girlNamePlaceholder" placeholder="અક્ષરથી શરૂ થતું નામ લખો" required>
-        </div>
-
-        <div class="input-group">
-            <label for="villageName" data-translate="villageNameLabel">🏘️ ગામનું નામ:</label>
-            <input type="text" id="villageName" data-translate-placeholder="villageNamePlaceholder" placeholder="અક્ષરથી શરૂ થતું ગામનું નામ લખો" required>
-        </div>
-
-        <div class="input-group">
-            <label for="item" data-translate="itemLabel">🍎 ફળ / ફૂલ / શાકભાજી:</label>
-            <input type="text" id="item" data-translate-placeholder="itemPlaceholder" placeholder="અક્ષરથી શરૂ થતું નામ લખો" required>
-        </div>
-        
-        <button type="submit" data-translate="submitButton">જવાબ સબમિટ કરો</button>
-    </form>
-
-    <p id="message" style="margin-top: 20px; color: red;"></p>
-    <div id="scoreDisplay"></div>
-</div>
-
-<script src="/socket.io/socket.io.js"></script> 
-
-<script>
-    const socket = io(); 
-    const messageElement = document.getElementById('message');
-    const scoreDisplayElement = document.getElementById('scoreDisplay');
-    const gameForm = document.getElementById('gameForm');
-    const nameRegistration = document.getElementById('nameRegistration');
-    const registerButton = document.getElementById('registerButton');
-    const langSelectorDiv = document.querySelector('.lang-selector');
-
-    let players = {};
-    let currentLang = 'gu'; // Default to Gujarati
-    let isHost = false; // Host સ્થિતિ સંગ્રહ કરવા માટે
-    
-    // *** ભાષાંતર માટેનો મુખ્ય ડેટા ઑબ્જેક્ટ ***
-    const translations = {
-        gu: {
-            title: "અક્ષર ગેમ (ગુજરાતી)",
-            languageLabel: "ભાષા:",
-            connecting: "કનેક્ટિંગ...",
-            currentAlphabetLabel: "આજનો અક્ષર:",
-            boyNameLabel: "👦 છોકરાનું નામ:",
-            girlNameLabel: "👧 છોકરીનું નામ:",
-            villageNameLabel: "🏘️ ગામનું નામ:",
-            itemLabel: "🍎 ફળ / ફૂલ / શાકભાજી:",
-            submitButton: "જવાબ સબમિટ કરો",
-            registerButton: "જોડાઓ",
-            promptNameLabel: "કૃપા કરીને તમારું નામ દાખલ કરો:",
-            boyNamePlaceholder: "અક્ષરથી શરૂ થતું નામ લખો",
-            girlNamePlaceholder: "અક્ષરથી શરૂ થતું નામ લખો",
-            villageNamePlaceholder: "અક્ષરથી શરૂ થતું ગામનું નામ લખો",
-            itemPlaceholder: "અક્ષરથી શરૂ થતું નામ લખો",
-            connected: (count) => `ખેલાડીઓ જોડાયેલા: ${count}`,
-            roundStart: (alpha, round) => `રાઉન્ડ શરૂ! અક્ષર '${alpha}'! (રાઉન્ડ: ${round})`,
-            fillAll: "કૃપા કરીને બધા બોક્સ ભરો.",
-            answerSent: "જવાબ મોકલી દેવાયો છે. અન્ય ખેલાડીઓની રાહ જુઓ...",
-            scoreTitle: "🏆 સ્કોરબોર્ડ",
-            scorePoints: (name, score) => `${name}: <b>${score}</b> પોઈન્ટ`,
-            hostMessage: "તમે Host છો. તમે ભાષા બદલી શકો છો.",
-            playerMessage: "તમે ખેલાડી છો.",
-            languageChangeAlert: (lang) => `Host એ ભાષા બદલીને ${translations[lang].title.split(' ')[0]} કરી છે.`,
-        },
-        hi: {
-            title: "अक्षर खेल (हिन्दी)",
-            languageLabel: "भाषा:",
-            connecting: "कनेक्ट हो रहा है...",
-            currentAlphabetLabel: "आज का अक्षर:",
-            boyNameLabel: "👦 लड़के का नाम:",
-            girlNameLabel: "👧 लड़की का नाम:",
-            villageNameLabel: "🏘️ गाँव का नाम:",
-            itemLabel: "🍎 फल / फूल / सब्जी:",
-            submitButton: "उत्तर सबमिट करें",
-            registerButton: "जुड़ें",
-            promptNameLabel: "कृपया अपना नाम दर्ज करें:",
-            boyNamePlaceholder: "अक्षर से शुरू होने वाला नाम लिखें",
-            girlNamePlaceholder: "अक्षर से शुरू होने वाला नाम लिखें",
-            villageNamePlaceholder: "अक्षर से शुरू होने वाला गाँव का नाम लिखें",
-            itemPlaceholder: "अक्षर से शुरू होने वाला नाम लिखें",
-            connected: (count) => `खिलाड़ी जुड़े हुए हैं: ${count}`,
-            roundStart: (alpha, round) => `राउंड शुरू! अक्षर '${alpha}'! (राउंड: ${round})`,
-            fillAll: "कृपया सभी बॉक्स भरें।",
-            answerSent: "उत्तर भेज दिया गया है। अन्य खिलाड़ियों का इंतज़ार करें...",
-            scoreTitle: "🏆 स्कोरबोर्ड",
-            scorePoints: (name, score) => `${name}: <b>${score}</b> पॉइंट`,
-            hostMessage: "आप Host हैं। आप भाषा बदल सकते हैं।",
-            playerMessage: "आप खिलाड़ी हैं।",
-            languageChangeAlert: (lang) => `Host ने भाषा बदलकर ${translations[lang].title.split(' ')[0]} कर दी है।`,
-        },
-        en: {
-            title: "Akshar Game (English)",
-            languageLabel: "Language:",
-            connecting: "Connecting...",
-            currentAlphabetLabel: "Current Alphabet:",
-            boyNameLabel: "👦 Boy's Name:",
-            girlNameLabel: "👧 Girl's Name:",
-            villageNameLabel: "🏘️ Village Name:",
-            itemLabel: "🍎 Fruit / Flower / Vegetable:",
-            submitButton: "Submit Answer",
-            registerButton: "Join",
-            promptNameLabel: "Please enter your name:",
-            boyNamePlaceholder: "Enter a name starting with the alphabet",
-            girlNamePlaceholder: "Enter a name starting with the alphabet",
-            villageNamePlaceholder: "Enter a village name starting with the alphabet",
-            itemPlaceholder: "Enter a name starting with the alphabet",
-            connected: (count) => `Players Connected: ${count}`,
-            roundStart: (alpha, round) => `Round Start! Alphabet '${alpha}'! (Round: ${round})`,
-            fillAll: "Please fill all boxes.",
-            answerSent: "Answer submitted. Wait for other players...",
-            scoreTitle: "🏆 Scoreboard",
-            scorePoints: (name, score) => `${name}: <b>${score}</b> Points`,
-            hostMessage: "You are the Host. You can change the language.",
-            playerMessage: "You are a player.",
-            languageChangeAlert: (lang) => `The Host has changed the language to ${translations[lang].title.split(' ')[0]}.`,
-        }
-    };
-
-    // ભાષા બદલવાનું મુખ્ય ફંક્શન (UI અપડેટ કરવા માટે)
-    function updateLanguage(lang) {
-        currentLang = lang;
-        const currentTranslation = translations[lang];
-
-        document.querySelectorAll('[data-translate]').forEach(element => {
-            const key = element.getAttribute('data-translate');
-            if (typeof currentTranslation[key] === 'string') {
-                element.textContent = currentTranslation[key];
-            }
-        });
-
-        document.querySelectorAll('[data-translate-placeholder]').forEach(element => {
-            const key = element.getAttribute('data-translate-placeholder');
-            if (currentTranslation[key]) {
-                element.placeholder = currentTranslation[key];
-            }
-        });
-
-        document.title = currentTranslation.title;
-        updatePlayerStatus(Object.keys(players).length); 
-    }
-    
-    // Host દ્વારા ભાષા બદલવાનું સંચાલન
-    function handleLanguageChange(lang) {
-        if (isHost) {
-            socket.emit('setLanguage', lang); // સર્વરને જાણ કરો
-        }
+<style>
+    /* CSS કોડ: આકર્ષક અને સ્વચ્છ લેઆઉટ માટે */
+    :root {
+        --primary-color: #3f51b5; /* Indigo */
+        --secondary-color: #ff9800; /* Amber */
+        --text-color: #212121;
+        --background-color: #e8eaf6; /* Light Lavender */
+        --card-background: #ffffff;
+        --success-color: #4caf50;
     }
 
-    // ખેલાડીનું સ્ટેટસ અપડેટ કરવા માટેનું ફંક્શન
-    function updatePlayerStatus(count) {
-        document.getElementById('playerStatus').textContent = translations[currentLang].connected(count);
+    body {
+        font-family: 'Roboto', sans-serif;
+        background-color: var(--background-color);
+        display: flex;
+        justify-content: center;
+        align-items: flex-start; /* ટોચ પરથી શરૂ કરો */
+        min-height: 100vh;
+        margin: 0;
+        padding-top: 20px;
+        color: var(--text-color);
     }
 
-    // કનેક્શન સેટઅપ
-    socket.on('connect', () => {
-        // કનેક્ટ થતાની સાથે જ UI બતાવો
-        nameRegistration.style.display = 'block';
-        gameForm.style.display = 'none';
-        
-        // Host ને વર્તમાન ભાષા પર સેટ થવા દો
-    });
+    .game-container {
+        background-color: var(--card-background);
+        padding: 30px;
+        border-radius: 15px;
+        box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2);
+        width: 100%;
+        max-width: 450px;
+        text-align: center;
+        transition: all 0.3s ease;
+    }
+
+    h1 {
+        color: var(--primary-color);
+        margin-bottom: 25px;
+        font-size: 1.8em;
+        font-weight: 700;
+        border-bottom: 2px solid var(--primary-color);
+        padding-bottom: 10px;
+    }
+
+    /* વર્તમાન અક્ષરનો દેખાવ */
+    .current-alphabet {
+        font-size: 5em;
+        color: var(--secondary-color);
+        margin: 20px 0;
+        font-weight: 900;
+        text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.1);
+    }
+
+    /* ઇનપુટ ગ્રુપ સ્ટાઇલ */
+    .input-group {
+        margin-bottom: 20px;
+        text-align: left;
+        border: 1px solid #cfd8dc;
+        padding: 10px;
+        border-radius: 8px;
+        background-color: #fafafa;
+    }
+
+    label {
+        display: block;
+        margin-bottom: 5px;
+        font-weight: bold;
+        color: var(--text-color);
+        font-size: 1em;
+    }
+
+    input[type="text"] {
+        width: 100%;
+        padding: 10px;
+        border: 1px solid #b0bec5;
+        border-radius: 6px;
+        box-sizing: border-box;
+        font-size: 16px;
+        background-color: #ffffff;
+        transition: border-color 0.3s ease;
+    }
+
+    input[type="text"]:focus {
+        border-color: var(--primary-color);
+        box-shadow: 0 0 5px rgba(63, 81, 181, 0.5);
+    }
+
+    /* બટન સ્ટાઇલ */
+    button {
+        background-color: var(--primary-color);
+        color: white;
+        padding: 15px 20px;
+        border: none;
+        border-radius: 8px;
+        cursor: pointer;
+        font-size: 1.1em;
+        width: 100%;
+        font-weight: bold;
+        transition: background-color 0.3s ease, transform 0.1s ease;
+        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+        margin-top: 10px;
+    }
+
+    button:hover {
+        background-color: #303f9f; /* Darker primary color */
+        transform: translateY(-2px);
+    }
+
+    /* અન્ય એલિમેન્ટ્સ */
+    #playerStatus, #message {
+        margin-top: 15px;
+        font-weight: 500;
+        font-size: 1.1em;
+        padding: 8px;
+        border-radius: 5px;
+    }
     
-    // --- Host સ્થિતિ સર્વર દ્વારા નક્કી થાય છે ---
-    socket.on('setHost', (hostStatus) => {
-        isHost = hostStatus;
-        
-        if (isHost) {
-            langSelectorDiv.style.display = 'block'; // Host માટે બતાવો
-            messageElement.style.color = 'blue';
-            messageElement.textContent = translations[currentLang].hostMessage;
-        } else {
-            langSelectorDiv.style.display = 'none'; // અન્ય ખેલાડીઓ માટે છુપાવો
-            messageElement.style.color = 'black';
-            messageElement.textContent = translations[currentLang].playerMessage;
-        }
-    });
+    #message {
+        color: var(--secondary-color);
+    }
     
-    // --- Host દ્વારા ભાષા બદલવાનું સંચાલન ---
-    socket.on('languageChanged', (newLang) => {
-        currentLang = newLang;
-        // Host દ્વારા બદલાયેલી ભાષાને ક્લાયન્ટ UI માં અપડેટ કરો
-        document.getElementById('language-select').value = newLang;
-        updateLanguage(newLang);
-        
-        // જો હું Host ન હોઉં, તો મને મેસેજ આપો
-        if (!isHost) {
-            messageElement.style.color = 'orange';
-            messageElement.textContent = translations[currentLang].languageChangeAlert(newLang);
-        }
-    });
+    #playerStatus {
+        color: var(--primary-color);
+    }
 
-    // નામ રજીસ્ટર કરવા માટેનું ફંક્શન
-    registerButton.addEventListener('click', () => {
-        const playerNameInput = document.getElementById('playerNameInput');
-        const playerName = playerNameInput.value.trim();
-
-        if (playerName !== "") {
-            socket.emit('registerName', playerName);
-            nameRegistration.style.display = 'none';
-            // gameForm અહીં નહિ દેખાય, તે newRound પર દેખાશે
-            playerNameInput.value = ""; 
-        } else {
-            alert("કૃપા કરીને તમારું નામ દાખલ કરો.");
-        }
-    });
-
-
-    // જ્યારે સર્વર તરફથી નવો રાઉન્ડ શરૂ થવાનો મેસેજ આવે
-    socket.on('newRound', (data) => {
-        document.getElementById('currentAlphabet').textContent = data.alphabet;
-        document.getElementById('gameForm').reset(); 
-        messageElement.style.color = 'green';
-        messageElement.textContent = translations[currentLang].roundStart(data.alphabet, data.roundNumber);
-        gameForm.style.display = 'block'; // રાઉન્ડ શરૂ થાય ત્યારે ગેમ ફોર્મ બતાવો
-        nameRegistration.style.display = 'none'; // નામ રજીસ્ટ્રેશન છુપાવો
-    });
-
-    // જ્યારે સર્વર તરફથી સ્કોર અપડેટ થાય
-    socket.on('scoreUpdate', (playersData) => {
-        players = playersData; 
-        
-        let html = `<h3>${translations[currentLang].scoreTitle}</h3><ul>`;
-        const sortedPlayers = Object.values(playersData).sort((a, b) => b.score - a.score);
-        
-        sortedPlayers.forEach(player => {
-            html += `<li>${translations[currentLang].scorePoints(player.name, player.score)}</li>`;
-        });
-        
-        html += '</ul>';
-        scoreDisplayElement.innerHTML = html;
-    });
-
-    // ખેલાડીઓની યાદી અપડેટ
-    socket.on('playerListUpdate', (playersData) => {
-        players = playersData;
-        const count = Object.keys(playersData).length;
-        updatePlayerStatus(count);
-    });
+    /* સ્કોરબોર્ડ સ્ટાઇલ */
+    #scoreDisplay {
+        margin-top: 30px;
+        border-top: 2px dashed #cfd8dc;
+        padding-top: 20px;
+        text-align: left;
+    }
     
-    // જ્યારે ફોર્મ સબમિટ થાય
-    document.getElementById('gameForm').addEventListener('submit', function(event) {
-        event.preventDefault();
-        
-        // વેલિડેશન હવે સર્વર પર થાય છે, ક્લાયન્ટ ફક્ત ડેટા મોકલશે
-        const boyName = document.getElementById('boyName').value.trim();
-        const girlName = document.getElementById('girlName').value.trim();
-        const villageName = document.getElementById('villageName').value.trim();
-        const item = document.getElementById('item').value.trim();
-
-        if (!boyName || !girlName || !villageName || !item) {
-            messageElement.style.color = 'red';
-            messageElement.textContent = translations[currentLang].fillAll;
-            return;
-        }
-
-        // જવાબને સર્વર પર મોકલો (Emit)
-        socket.emit('submitAnswer', {
-            boy: boyName, 
-            girl: girlName, 
-            village: villageName, 
-            item: item
-        });
-        
-        messageElement.style.color = 'orange';
-        messageElement.textContent = translations[currentLang].answerSent;
-    });
-
+    #scoreDisplay h3 {
+        color: var(--success-color);
+        font-size: 1.4em;
+        text-align: center;
+        margin-bottom: 15px;
+    }
     
-    // શરૂઆતમાં ભાષા લોડ કરો
-    updateLanguage('gu');
-</script>
-
-<script>
-if ('serviceWorker' in navigator) {
-  window.addEventListener('load', () => {
-    navigator.serviceWorker.register('/service-worker.js')
-      .then(registration => {
-        console.log('ServiceWorker registered:', registration);
-      })
-      .catch(error => {
-        console.log('ServiceWorker registration failed:', error);
-      });
-  });
-}
-</script>
-
-</body>
-                                                                </html>
+    #scoreDisplay ul {
+        list-style: none;
+        padding: 0;
+    }
+    
+    #scoreDisplay li {
+        background-color: #f1f8e9; /* Light green background */
+        margin-bottom: 8px;
+        padding: 10px;
+        border-radius: 5px;
+        display: flex;
+        justify-content: space-between;
+        font-size: 1em;
+    }
+    
+    /* Host સિલેક્ટર સ્ટાઇલ */
+    .lang-selector {
+        margin-bottom: 15px;
+        text-align: right;
+        font-size: 0.9em;
+    }
+    
+    #language-select {
+        padding: 5px;
+        border-radius: 5px;
+        border: 1px solid var(--primary-color);
+    }
+</style>
