@@ -1,167 +1,209 @@
-<style>
-    /* CSS કોડ: આકર્ષક અને સ્વચ્છ લેઆઉટ માટે */
-    :root {
-        --primary-color: #3f51b5; /* Indigo */
-        --secondary-color: #ff9800; /* Amber */
-        --text-color: #212121;
-        --background-color: #e8eaf6; /* Light Lavender */
-        --card-background: #ffffff;
-        --success-color: #4caf50;
-    }
+<!DOCTYPE html>
+<html lang="gu">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title data-translate="title">અક્ષર ગેમ (ગુજરાતી)</title>
 
-    body {
-        font-family: 'Roboto', sans-serif;
-        background-color: var(--background-color);
-        display: flex;
-        justify-content: center;
-        align-items: flex-start; /* ટોચ પરથી શરૂ કરો */
-        min-height: 100vh;
-        margin: 0;
-        padding-top: 20px;
-        color: var(--text-color);
-    }
+    <link rel="manifest" href="/manifest.json">
+    <meta name="apple-mobile-web-app-capable" content="yes">
 
-    .game-container {
-        background-color: var(--card-background);
-        padding: 30px;
-        border-radius: 15px;
-        box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2);
-        width: 100%;
-        max-width: 450px;
-        text-align: center;
-        transition: all 0.3s ease;
-    }
+    <style>
+        /* CSS કોડ: આધુનિક અને સ્વચ્છ લેઆઉટ */
+        :root {
+            --primary-color: #3f51b5; /* Indigo */
+            --secondary-color: #ff9800; /* Amber */
+            --text-color: #212121;
+            --background-color: #e8eaf6; /* Light Lavender */
+            --card-background: #ffffff;
+            --success-color: #4caf50;
+        }
 
-    h1 {
-        color: var(--primary-color);
-        margin-bottom: 25px;
-        font-size: 1.8em;
-        font-weight: 700;
-        border-bottom: 2px solid var(--primary-color);
-        padding-bottom: 10px;
-    }
+        body {
+            font-family: 'Roboto', sans-serif;
+            background-color: var(--background-color);
+            display: flex;
+            justify-content: center;
+            align-items: flex-start; /* ટોચ પરથી શરૂ કરો */
+            min-height: 100vh;
+            margin: 0;
+            padding-top: 20px;
+            color: var(--text-color);
+        }
 
-    /* વર્તમાન અક્ષરનો દેખાવ */
-    .current-alphabet {
-        font-size: 5em;
-        color: var(--secondary-color);
-        margin: 20px 0;
-        font-weight: 900;
-        text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.1);
-    }
+        .game-container {
+            background-color: var(--card-background);
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2);
+            width: 100%;
+            max-width: 450px;
+            text-align: center;
+            transition: all 0.3s ease;
+        }
 
-    /* ઇનપુટ ગ્રુપ સ્ટાઇલ */
-    .input-group {
-        margin-bottom: 20px;
-        text-align: left;
-        border: 1px solid #cfd8dc;
-        padding: 10px;
-        border-radius: 8px;
-        background-color: #fafafa;
-    }
+        h1 {
+            color: var(--primary-color);
+            margin-bottom: 25px;
+            font-size: 1.8em;
+            font-weight: 700;
+            border-bottom: 2px solid var(--primary-color);
+            padding-bottom: 10px;
+        }
 
-    label {
-        display: block;
-        margin-bottom: 5px;
-        font-weight: bold;
-        color: var(--text-color);
-        font-size: 1em;
-    }
+        /* વર્તમાન અક્ષરનો દેખાવ */
+        .current-alphabet {
+            font-size: 5em;
+            color: var(--secondary-color);
+            margin: 20px 0;
+            font-weight: 900;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.1);
+        }
 
-    input[type="text"] {
-        width: 100%;
-        padding: 10px;
-        border: 1px solid #b0bec5;
-        border-radius: 6px;
-        box-sizing: border-box;
-        font-size: 16px;
-        background-color: #ffffff;
-        transition: border-color 0.3s ease;
-    }
+        /* ઇનપુટ ગ્રુપ સ્ટાઇલ */
+        .input-group {
+            margin-bottom: 20px;
+            text-align: left;
+            border: 1px solid #cfd8dc;
+            padding: 10px;
+            border-radius: 8px;
+            background-color: #fafafa;
+        }
 
-    input[type="text"]:focus {
-        border-color: var(--primary-color);
-        box-shadow: 0 0 5px rgba(63, 81, 181, 0.5);
-    }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+            color: var(--text-color);
+            font-size: 1em;
+        }
 
-    /* બટન સ્ટાઇલ */
-    button {
-        background-color: var(--primary-color);
-        color: white;
-        padding: 15px 20px;
-        border: none;
-        border-radius: 8px;
-        cursor: pointer;
-        font-size: 1.1em;
-        width: 100%;
-        font-weight: bold;
-        transition: background-color 0.3s ease, transform 0.1s ease;
-        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
-        margin-top: 10px;
-    }
+        input[type="text"] {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #b0bec5;
+            border-radius: 6px;
+            box-sizing: border-box;
+            font-size: 16px;
+            background-color: #ffffff;
+            transition: border-color 0.3s ease;
+        }
 
-    button:hover {
-        background-color: #303f9f; /* Darker primary color */
-        transform: translateY(-2px);
-    }
+        input[type="text"]:focus {
+            border-color: var(--primary-color);
+            box-shadow: 0 0 5px rgba(63, 81, 181, 0.5);
+        }
 
-    /* અન્ય એલિમેન્ટ્સ */
-    #playerStatus, #message {
-        margin-top: 15px;
-        font-weight: 500;
-        font-size: 1.1em;
-        padding: 8px;
-        border-radius: 5px;
-    }
+        /* બટન સ્ટાઇલ */
+        button {
+            background-color: var(--primary-color);
+            color: white;
+            padding: 15px 20px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1.1em;
+            width: 100%;
+            font-weight: bold;
+            transition: background-color 0.3s ease, transform 0.1s ease;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+            margin-top: 10px;
+        }
+
+        button:hover {
+            background-color: #303f9f; /* Darker primary color */
+            transform: translateY(-2px);
+        }
+
+        /* અન્ય એલિમેન્ટ્સ */
+        #playerStatus, #message {
+            margin-top: 15px;
+            font-weight: 500;
+            font-size: 1.1em;
+            padding: 8px;
+            border-radius: 5px;
+        }
+        
+        #message {
+            color: var(--secondary-color);
+        }
+        
+        #playerStatus {
+            color: var(--primary-color);
+        }
+
+        /* સ્કોરબોર્ડ સ્ટાઇલ */
+        #scoreDisplay {
+            margin-top: 30px;
+            border-top: 2px dashed #cfd8dc;
+            padding-top: 20px;
+            text-align: left;
+        }
+        
+        #scoreDisplay h3 {
+            color: var(--success-color);
+            font-size: 1.4em;
+            text-align: center;
+            margin-bottom: 15px;
+        }
+        
+        #scoreDisplay ul {
+            list-style: none;
+            padding: 0;
+        }
+        
+        #scoreDisplay li {
+            background-color: #f1f8e9; /* Light green background */
+            margin-bottom: 8px;
+            padding: 10px;
+            border-radius: 5px;
+            display: flex;
+            justify-content: space-between;
+            font-size: 1em;
+        }
+        
+        /* Host સિલેક્ટર સ્ટાઇલ */
+        .lang-selector {
+            margin-bottom: 15px;
+            text-align: right;
+            font-size: 0.9em;
+        }
+        
+        #language-select {
+            padding: 5px;
+            border-radius: 5px;
+            border: 1px solid var(--primary-color);
+        }
+    </style>
+</head>
+<body>
+
+<div class="game-container">
     
-    #message {
-        color: var(--secondary-color);
-    }
-    
-    #playerStatus {
-        color: var(--primary-color);
-    }
+    <div class="lang-selector" style="display: none;"> 
+        <label for="language-select" data-translate="languageLabel">ભાષા:</label>
+        <select id="language-select" onchange="handleLanguageChange(this.value)">
+            <option value="gu">ગુજરાતી</option>
+            <option value="hi">हिन्दी</option>
+            <option value="en">English</option>
+        </select>
+    </div>
 
-    /* સ્કોરબોર્ડ સ્ટાઇલ */
-    #scoreDisplay {
-        margin-top: 30px;
-        border-top: 2px dashed #cfd8dc;
-        padding-top: 20px;
-        text-align: left;
-    }
+    <h1 data-translate="appTitle">📝 અક્ષર ગેમ (ગુજરાતી)</h1>
+
+    <p id="playerStatus" data-translate="connecting">કનેક્ટિંગ...</p>
     
-    #scoreDisplay h3 {
-        color: var(--success-color);
-        font-size: 1.4em;
-        text-align: center;
-        margin-bottom: 15px;
-    }
+    <div id="nameRegistration" style="display: none;">
+        <div class="input-group">
+            <label for="playerNameInput" data-translate="promptNameLabel">કૃપા કરીને તમારું નામ દાખલ કરો:</label>
+            <input type="text" id="playerNameInput" placeholder="અહીં તમારું નામ લખો" required>
+        </div>
+        <button id="registerButton" data-translate="registerButton">જોડાઓ</button>
+    </div>
     
-    #scoreDisplay ul {
-        list-style: none;
-        padding: 0;
-    }
-    
-    #scoreDisplay li {
-        background-color: #f1f8e9; /* Light green background */
-        margin-bottom: 8px;
-        padding: 10px;
-        border-radius: 5px;
-        display: flex;
-        justify-content: space-between;
-        font-size: 1em;
-    }
-    
-    /* Host સિલેક્ટર સ્ટાઇલ */
-    .lang-selector {
-        margin-bottom: 15px;
-        text-align: right;
-        font-size: 0.9em;
-    }
-    
-    #language-select {
-        padding: 5px;
-        border-radius: 5px;
-        border: 1px solid var(--primary-color);
-    }
-        </style>
+    <form id="gameForm" style="display: none;">
+        <p data-translate="currentAlphabetLabel">આજનો અક્ષર:</p>
+        <div class="current-alphabet" id="currentAlphabet">?</div> 
+        
+        <div class="input-group">
+            <label for="boyName" data-translate="boyNameLabel">👦 છોકરા
