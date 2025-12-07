@@ -14,8 +14,15 @@ let players = {}; // બધા ખેલાડીઓનો ડેટા (Socket 
 let roundActive = false;
 let answers = []; // વર્તમાન રાઉન્ડના જવાબો
 
-// ગુજરાતી મૂળાક્ષરો (તેમાંથી રેન્ડમલી એક પસંદ કરાશે)
-const alphabets = ["ક", "ખ", "ગ", "ચ", "ટ", "ત", "પ", "મ", "ર", "વ"]; 
+// ગુજરાતી, હિન્દી અને અંગ્રેજી મૂળાક્ષરોનું મિશ્રણ (હવે મલ્ટિપલ ભાષા માટે તૈયાર)
+const alphabets = [
+    // ગુજરાતી (Gujarati)
+    "ક", "ખ", "ગ", "ચ", "ટ", "ત", "પ", "મ", "ર", "વ", "સ",
+    // હિન્દી (Hindi) - જે ગુજરાતીથી અલગ છે
+    "अ", "इ", "उ", "ए", "ओ", "श", "भ", "झ", 
+    // અંગ્રેજી (English)
+    "A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M", "N", "O", "P", "Q", "R", "S", "T", "U", "V", "W", "X", "Y", "Z"
+]; 
 
 // C. સ્ટેટિક ફાઇલોને સર્વ કરો (HTML, CSS, Client JS)
 app.use(express.static('public')); // માની લો કે તમારી index.html 'public' ફોલ્ડરમાં છે
@@ -81,7 +88,7 @@ function endRoundAndCalculateScore() {
     if (!roundActive) return;
     roundActive = false;
     
-    const currentAlphabetToMatch = currentAlphabet.trim();
+    const currentAlphabetToMatch = currentAlphabet.trim().toLowerCase(); // કેસ-ઇન્સેન્સિટિવ મેચિંગ માટે
     const categories = ['boy', 'girl', 'village', 'item'];
     
     // 1. દરેક કેટેગરીમાં જવાબોની ગણતરી કરો
@@ -113,11 +120,10 @@ function endRoundAndCalculateScore() {
             }
 
             // પ્રથમ અક્ષરની ચકાસણી (Validation)
-            // charAt(0) ગુજરાતી માટે પણ યોગ્ય રીતે કામ કરવું જોઈએ
-            const firstChar = answerValue.charAt(0);
+            const firstChar = answerValue.charAt(0).toLowerCase();
             
-            // જો જવાબ વર્તમાન અક્ષરથી શરૂ થતો ન હોય તો 0 પોઈન્ટ (નીચેના કોડ દ્વારા સંભાળાય છે)
-            if (firstChar !== currentAlphabetToMatch) {
+            // જો જવાબ વર્તમાન અક્ષરથી શરૂ થતો ન હોય તો 0 પોઈન્ટ
+            if (firstChar !== currentAlphabetToMatch.toLowerCase()) {
                 return;
             }
 
